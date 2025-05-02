@@ -23,9 +23,13 @@ interface Props { }
  * state is the internal value of the component and managed by
  * the component itself.
  */
+
+  
+
+
 class App extends React.Component<Props, GameState> {
   private initialized: boolean = false;
-
+  
   /**
    * @param props has type Props
    */
@@ -34,7 +38,7 @@ class App extends React.Component<Props, GameState> {
     /**
      * state has type GameState as specified in the class inheritance.
      */
-    this.state = { cells: [] }
+    this.state = { cells: [] , currentPlayer : "Player 1" , winner : "" , History : ""};
   }
 
   /**
@@ -47,7 +51,11 @@ class App extends React.Component<Props, GameState> {
     const json = await response.json();
     this.setState({ cells: json['cells'] });
   }
-
+  undoGame = async () => {
+    const response = await fetch('/undoMove');
+    const json = await response.json();
+    this.setState({ cells: json['cells'] });
+  }
   /**
    * play will generate an anonymous function that the component
    * can bind with.
@@ -61,11 +69,17 @@ class App extends React.Component<Props, GameState> {
       e.preventDefault();
       const response = await fetch(`/play?x=${x}&y=${y}`)
       const json = await response.json();
-      this.setState({ cells: json['cells'] });
+      this.setState({ cells: json['cells'] , winner : json['winner'] , History : json['History'] });
     }
   }
-
+  
   createCell(cell: Cell, index: number): React.ReactNode {
+    if(   cell.text  === 'X' ){
+      this.setState({currentPlayer : "Player 0"});
+    }
+    else if( cell.text  === 'O' ){
+      this.setState({currentPlayer : "Player 1"});
+    }
     if (cell.playable)
       /**
        * key is used for React when given a list of items. It
@@ -73,16 +87,19 @@ class App extends React.Component<Props, GameState> {
        * which list item need to be updated.
        * @see https://reactjs.org/docs/lists-and-keys.html#keys
        */
+       
       return (
         <div key={index}>
           <a href='/' onClick={this.play(cell.x, cell.y)}>
-            <BoardCell cell={cell}></BoardCell>
+        
+               <BoardCell cell={cell}></BoardCell>
           </a>
         </div>
       )
     else
-      return (
+      return (   
         <div key={index}><BoardCell cell={cell}></BoardCell></div>
+        
       )
   }
 
@@ -115,13 +132,20 @@ class App extends React.Component<Props, GameState> {
      */
     return (
       <div>
+       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+               <h2>Current Turn: {this.state.currentPlayer}</h2>
+          <h3>Winner: {this.state.winner === "null" ? ("") : this.state.winner}</h3>
+         </div>
         <div id="board">
           {this.state.cells.map((cell, i) => this.createCell(cell, i))}
+        </div>
+        <div id="History">
+         {this.state.History}
         </div>
         <div id="bottombar">
           <button onClick={/* get the function, not call the function */this.newGame}>New Game</button>
           {/* Exercise: implement Undo function */}
-          <button>Undo</button>
+          <button onClick={this.undoGame}>Undo</button>
         </div>
       </div>
     );
